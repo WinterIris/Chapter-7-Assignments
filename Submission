@@ -1,0 +1,166 @@
+/*
+File Name: Chapter 7 Assignments Submission
+
+Developer/Programmer: Christopher Wilson
+
+Date: 05/03/25
+
+Requirements: Create a C++ program that works as a Grade Book Application
+*/
+
+#include <iostream>
+#include <vector>
+#include <string>
+#include <limits>
+#include <algorithm>
+
+using namespace std;
+
+// Function prototypes
+void displayMenu();
+void addStudents(vector<string>& studentNames, vector<vector<int>>& studentGrades);
+void addGrades(const vector<string>& studentNames, vector<vector<int>>& studentGrades);
+void displayAll(const vector<string>& studentNames, const vector<vector<int>>& studentGrades);
+double computeAverageWithDrop(const vector<int>& grades);
+char getLetterGrade(double average);
+int getValidatedGrade();
+
+int main() {
+    vector<string> studentNames;
+    vector<vector<int>> studentGrades;
+
+    int choice;
+
+    do {
+        displayMenu();
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        // Handle invalid input
+        if (cin.fail()) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Invalid input. Please enter a number between 1 and 4.\n";
+            continue;
+        }
+
+        switch (choice) {
+            case 1:
+                addStudents(studentNames, studentGrades);
+                break;
+            case 2:
+                addGrades(studentNames, studentGrades);
+                break;
+            case 3:
+                displayAll(studentNames, studentGrades);
+                break;
+            case 4:
+                cout << "Exiting Grade Book Application. Goodbye!\n";
+                break;
+            default:
+                cout << "Invalid choice. Please select an option from the menu.\n";
+        }
+    } while (choice != 4);
+
+    return 0;
+}
+
+void displayMenu() {
+    cout << "\n--- Grade Book Menu ---\n";
+    cout << "1. Add Students\n";
+    cout << "2. Add Grades\n";
+    cout << "3. Display Students and Grades\n";
+    cout << "4. Exit\n";
+}
+
+void addStudents(vector<string>& studentNames, vector<vector<int>>& studentGrades) {
+    string name;
+    cout << "Enter student names (type 'done' to finish):\n";
+    while (true) {
+        cout << "Student name: ";
+        cin >> ws;
+        getline(cin, name);
+        if (name == "done") break;
+        studentNames.push_back(name);
+        studentGrades.push_back(vector<int>());  // Initialize empty grade list
+    }
+}
+
+void addGrades(const vector<string>& studentNames, vector<vector<int>>& studentGrades) {
+    if (studentNames.empty()) {
+        cout << "No students available. Please add students first.\n";
+        return;
+    }
+
+    for (size_t i = 0; i < studentNames.size(); ++i) {
+        cout << "\nEntering grades for " << studentNames[i] << " (type -1 to finish):\n";
+        while (true) {
+            int grade = getValidatedGrade();
+            if (grade == -1) break;
+            studentGrades[i].push_back(grade);
+        }
+    }
+}
+
+int getValidatedGrade() {
+    int grade;
+    while (true) {
+        cout << "Enter grade (0–100, or -1 to stop): ";
+        cin >> grade;
+
+        if (cin.fail()) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Invalid input. Try again.\n";
+        } else if ((grade >= 0 && grade <= 100) || grade == -1) {
+            return grade;
+        } else {
+            cout << "Grade must be between 0 and 100. Try again.\n";
+        }
+    }
+}
+
+void displayAll(const vector<string>& studentNames, const vector<vector<int>>& studentGrades) {
+    if (studentNames.empty()) {
+        cout << "No students to display.\n";
+        return;
+    }
+
+    cout << "\n--- Student Grades ---\n";
+    for (size_t i = 0; i < studentNames.size(); ++i) {
+        cout << "\nStudent: " << studentNames[i] << "\nGrades: ";
+        if (studentGrades[i].empty()) {
+            cout << "No grades entered.\n";
+            continue;
+        }
+
+        for (int grade : studentGrades[i]) {
+            cout << grade << " ";
+        }
+
+        double average = computeAverageWithDrop(studentGrades[i]);
+        char letter = getLetterGrade(average);
+        cout << "\nAverage (lowest dropped): " << average;
+        cout << "\nLetter Grade: " << letter << "\n";
+    }
+}
+
+double computeAverageWithDrop(const vector<int>& grades) {
+    if (grades.empty()) return 0.0;
+    if (grades.size() == 1) return grades[0];  // Only one grade
+
+    int sum = 0, minGrade = grades[0];
+    for (int grade : grades) {
+        sum += grade;
+        if (grade < minGrade) minGrade = grade;
+    }
+    return static_cast<double>(sum - minGrade) / (grades.size() - 1);
+}
+
+char getLetterGrade(double average) {
+    if (average >= 90) return 'A';
+    if (average >= 80) return 'B';
+    if (average >= 70) return 'C';
+    if (average >= 60) return 'D';
+    return 'F';
+}
