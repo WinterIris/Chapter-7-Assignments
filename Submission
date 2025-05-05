@@ -1,0 +1,263 @@
+/*
+File Name: Chapter 7 Assignments Submission
+
+Developer: Christopher Wilson
+
+Date: 05/03/2025
+
+Requirements: Create a C++ program that works as a Grade Book Application that saves information to a file.
+*/
+
+#include <iostream>
+#include <vector>
+#include <string>
+#include <fstream>
+#include <limits>
+#include <algorithm>
+#include <sstream>
+
+using namespace std;
+
+const string FILE_NAME = "gradebook.txt";
+
+// Function prototypes
+void displayMenu();
+void loadFromFile(vector<string>& studentNames, vector<vector<int>>& studentGrades);
+void saveToFile(const vector<string>& studentNames, const vector<vector<int>>& studentGrades);
+void addStudents(vector<string>& studentNames, vector<vector<int>>& studentGrades);
+void addGrades(const vector<string>& studentNames, vector<vector<int>>& studentGrades);
+void displayAll(const vector<string>& studentNames, const vector<vector<int>>& studentGrades);
+void searchStudent(const vector<string>& studentNames, vector<vector<int>>& studentGrades);
+double computeAverageWithDrop(const vector<int>& grades);
+char getLetterGrade(double average);
+int getValidatedGrade();
+
+int main() {
+    vector<string> studentNames;
+    vector<vector<int>> studentGrades;
+
+    loadFromFile(studentNames, studentGrades);
+
+    int choice;
+
+    do {
+        displayMenu();
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        if (cin.fail()) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Invalid input. Please enter a number.\n";
+            continue;
+        }
+
+        switch (choice) {
+            case 1:
+                addStudents(studentNames, studentGrades);
+                break;
+            case 2:
+                addGrades(studentNames, studentGrades);
+                break;
+            case 3:
+                displayAll(studentNames, studentGrades);
+                break;
+            case 4:
+                searchStudent(studentNames, studentGrades);
+                break;
+            case 5:
+                saveToFile(studentNames, studentGrades);
+                cout << "Data saved. Exiting.\n";
+                break;
+            default:
+                cout << "Invalid choice. Try again.\n";
+        }
+    } while (choice != 5);
+
+    return 0;
+}
+
+void displayMenu() {
+    cout << "\n--- Grade Book Menu ---\n";
+    cout << "1. Add Students\n";
+    cout << "2. Add Grades\n";
+    cout << "3. Display All Students and Grades\n";
+    cout << "4. Search and Edit Student\n";
+    cout << "5. Save and Exit\n";
+}
+
+void loadFromFile(vector<string>& studentNames, vector<vector<int>>& studentGrades) {
+    ifstream inFile(FILE_NAME);
+    if (!inFile) return;
+
+    string line;
+    while (getline(inFile, line)) {
+        istringstream iss(line);
+        string name;
+        getline(iss, name, ':');
+
+        studentNames.push_back(name);
+        vector<int> grades;
+        string gradeStr;
+        while (getline(iss, gradeStr, ',')) {
+            grades.push_back(stoi(gradeStr));
+        }
+        studentGrades.push_back(grades);
+    }
+    inFile.close();
+}
+
+void saveToFile(const vector<string>& studentNames, const vector<vector<int>>& studentGrades) {
+    ofstream outFile(FILE_NAME);
+    for (size_t i = 0; i < studentNames.size(); ++i) {
+        outFile << studentNames[i] << ":";
+        for (size_t j = 0; j < studentGrades[i].size(); ++j) {
+            outFile << studentGrades[i][j];
+            if (j != studentGrades[i].size() - 1) outFile << ",";
+        }
+        outFile << "\n";
+    }
+    outFile.close();
+}
+
+void addStudents(vector<string>& studentNames, vector<vector<int>>& studentGrades) {
+    string name;
+    cout << "Enter student names (type 'done' to finish):\n";
+    while (true) {
+        cout << "Student name: ";
+        cin >> ws;
+        getline(cin, name);
+        if (name == "done") break;
+        studentNames.push_back(name);
+        studentGrades.push_back(vector<int>());
+    }
+}
+
+void addGrades(const vector<string>& studentNames, vector<vector<int>>& studentGrades) {
+    if (studentNames.empty()) {
+        cout << "No students available. Please add students first.\n";
+        return;
+    }
+
+    for (size_t i = 0; i < studentNames.size(); ++i) {
+        cout << "\nEntering grades for " << studentNames[i] << " (type -1 to finish):\n";
+        while (true) {
+            int grade = getValidatedGrade();
+            if (grade == -1) break;
+            studentGrades[i].push_back(grade);
+        }
+    }
+}
+
+void displayAll(const vector<string>& studentNames, const vector<vector<int>>& studentGrades) {
+    if (studentNames.empty()) {
+        cout << "No students to display.\n";
+        return;
+    }
+
+    for (size_t i = 0; i < studentNames.size(); ++i) {
+        cout << "\nStudent: " << studentNames[i] << "\nGrades: ";
+        for (int grade : studentGrades[i]) {
+            cout << grade << " ";
+        }
+
+        double avg = computeAverageWithDrop(studentGrades[i]);
+        cout << "\nAverage (lowest dropped): " << avg;
+        cout << "\nLetter Grade: " << getLetterGrade(avg) << "\n";
+    }
+}
+
+int getValidatedGrade() {
+    int grade;
+    while (true) {
+        cout << "Enter grade (0–100, or -1 to stop): ";
+        cin >> grade;
+
+        if (cin.fail()) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Invalid input.\n";
+        } else if ((grade >= 0 && grade <= 100) || grade == -1) {
+            return grade;
+        } else {
+            cout << "Grade must be between 0 and 100.\n";
+        }
+    }
+}
+
+double computeAverageWithDrop(const vector<int>& grades) {
+    if (grades.empty()) return 0.0;
+    if (grades.size() == 1) return grades[0];
+
+    int sum = 0, minGrade = grades[0];
+    for (int g : grades) {
+        sum += g;
+        if (g < minGrade) minGrade = g;
+    }
+    return static_cast<double>(sum - minGrade) / (grades.size() - 1);
+}
+
+char getLetterGrade(double average) {
+    if (average >= 90) return 'A';
+    if (average >= 80) return 'B';
+    if (average >= 70) return 'C';
+    if (average >= 60) return 'D';
+    return 'F';
+}
+
+void searchStudent(const vector<string>& studentNames, vector<vector<int>>& studentGrades) {
+    string name;
+    cout << "Enter student name to search: ";
+    cin >> ws;
+    getline(cin, name);
+
+    auto it = find(studentNames.begin(), studentNames.end(), name);
+    if (it == studentNames.end()) {
+        cout << "Student not found.\n";
+        return;
+    }
+
+    size_t index = distance(studentNames.begin(), it);
+    cout << "Grades for " << name << ": ";
+    for (int g : studentGrades[index]) cout << g << " ";
+    cout << "\nAverage: " << computeAverageWithDrop(studentGrades[index]) 
+         << " (" << getLetterGrade(computeAverageWithDrop(studentGrades[index])) << ")\n";
+
+    cout << "\nEdit Menu:\n1. Add Score\n2. Change Score\n3. Delete Score\n4. Back\nChoose: ";
+    int choice;
+    cin >> choice;
+
+    switch (choice) {
+        case 1: {
+            int newGrade = getValidatedGrade();
+            if (newGrade != -1) studentGrades[index].push_back(newGrade);
+            break;
+        }
+        case 2: {
+            int pos;
+            cout << "Enter position of score to change (1-based index): ";
+            cin >> pos;
+            if (pos < 1 || pos > studentGrades[index].size()) {
+                cout << "Invalid position.\n";
+            } else {
+                int newGrade = getValidatedGrade();
+                if (newGrade != -1) studentGrades[index][pos - 1] = newGrade;
+            }
+            break;
+        }
+        case 3: {
+            int pos;
+            cout << "Enter position of score to delete (1-based index): ";
+            cin >> pos;
+            if (pos < 1 || pos > studentGrades[index].size()) {
+                cout << "Invalid position.\n";
+            } else {
+                studentGrades[index].erase(studentGrades[index].begin() + pos - 1);
+                cout << "Score deleted.\n";
+            }
+            break;
+        }
+        default:
+            break;
+    }
+}
